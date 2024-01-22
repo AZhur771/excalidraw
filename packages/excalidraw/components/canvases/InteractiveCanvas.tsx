@@ -167,6 +167,7 @@ const InteractiveCanvas = (props: InteractiveCanvasProps) => {
 const getRelevantAppStateProps = (
   appState: AppState,
 ): InteractiveCanvasAppState => ({
+  webGLEnabled: appState.webGLEnabled,
   zoom: appState.zoom,
   scrollX: appState.scrollX,
   scrollY: appState.scrollY,

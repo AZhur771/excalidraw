@@ -2,6 +2,7 @@ import { isElementInViewport } from "../element/sizeHelpers";
 import { isImageElement } from "../element/typeChecks";
 import { NonDeletedExcalidrawElement } from "../element/types";
 import { cancelRender } from "../renderer/renderScene";
+import { displayObjectCache } from "../renderer/webgl/renderWebGLElement";
 import { AppState } from "../types";
 import { memoize } from "../utils";
 import Scene from "./Scene";
@@ -18,12 +19,14 @@ export class Renderer {
       elements,
       zoom,
       offsetLeft,
+      webGLEnabled,
       offsetTop,
       scrollX,
       scrollY,
       height,
       width,
     }: {
+      webGLEnabled: AppState["webGLEnabled"];
       elements: readonly NonDeletedExcalidrawElement[];
       zoom: AppState["zoom"];
       offsetLeft: AppState["offsetLeft"];
@@ -33,15 +36,28 @@ export class Renderer {
       height: AppState["height"];
       width: AppState["width"];
     }): readonly NonDeletedExcalidrawElement[] => {
-      return elements.filter((element) =>
-        isElementInViewport(element, width, height, {
+      return elements.filter((element, idx) => {
+        element.idx = idx;
+
+        const isVisible = isElementInViewport(element, width, height, {
           zoom,
           offsetLeft,
           offsetTop,
           scrollX,
           scrollY,
-        }),
-      );
+        });
+
+        if (webGLEnabled) {
+          const sprite = displayObjectCache.get(element);
+          if (sprite) {
+            sprite.visible = isVisible;
+            sprite.renderable = isVisible;
+            sprite.cullable = true;
+          }
+        }
+
+        return isVisible;
+      });
     };
 
     const getCanvasElements = ({
@@ -83,6 +99,7 @@ export class Renderer {
         width,
         editingElement,
         pendingImageElementId,
+        webGLEnabled,
         // unused but serves we cache on it to invalidate elements if they
         // get mutated
         versionNonce: _versionNonce,
@@ -93,6 +110,7 @@ export class Renderer {
         scrollX: AppState["scrollX"];
         scrollY: AppState["scrollY"];
         height: AppState["height"];
+        webGLEnabled: AppState["webGLEnabled"];
         width: AppState["width"];
         editingElement: AppState["editingElement"];
         pendingImageElementId: AppState["pendingImageElementId"];
@@ -108,6 +126,7 @@ export class Renderer {
 
         const visibleElements = getVisibleCanvasElements({
           elements: canvasElements,
+          webGLEnabled,
           zoom,
           offsetLeft,
           offsetTop,

@@ -266,6 +266,7 @@ export const exportToCanvas = async (
       imageCache,
       renderGrid: false,
       isExporting: true,
+      webGLEnabled: false,
     },
   });
 
@@ -435,6 +436,7 @@ export const exportToSvg = async (
     renderEmbeddables: opts?.renderEmbeddables ?? false,
     frameRendering,
     canvasBackgroundColor: viewBackgroundColor,
+    webGLEnabled: false,
   });
 
   tempScene.destroy();

@@ -51,6 +51,7 @@ export class ShapeCache {
     renderConfig: {
       isExporting: boolean;
       canvasBackgroundColor: AppState["viewBackgroundColor"];
+      webGLEnabled: AppState["webGLEnabled"];
     } | null,
   ) => {
     // when exporting, always regenerated to guarantee the latest shape
@@ -72,6 +73,7 @@ export class ShapeCache {
       renderConfig || {
         isExporting: false,
         canvasBackgroundColor: COLOR_PALETTE.white,
+        webGLEnabled: false,
       },
     ) as T["type"] extends keyof ElementShapes
       ? ElementShapes[T["type"]]

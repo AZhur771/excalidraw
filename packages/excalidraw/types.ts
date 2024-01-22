@@ -139,6 +139,7 @@ type _CommonCanvasAppState = {
   width: AppState["width"];
   height: AppState["height"];
   viewModeEnabled: AppState["viewModeEnabled"];
+  webGLEnabled: AppState["webGLEnabled"];
   editingGroupId: AppState["editingGroupId"]; // TODO: move to interactive canvas if possible
   selectedElementIds: AppState["selectedElementIds"]; // TODO: move to interactive canvas if possible
   frameToHighlight: AppState["frameToHighlight"]; // TODO: move to interactive canvas if possible
@@ -294,6 +295,7 @@ export interface AppState {
   height: number;
   offsetTop: number;
   offsetLeft: number;
+  webGLEnabled: boolean;
 
   fileHandle: FileSystemHandle | null;
   collaborators: Map<SocketId, Collaborator>;

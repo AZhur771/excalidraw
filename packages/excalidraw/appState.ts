@@ -22,6 +22,7 @@ export const getDefaultAppState = (): Omit<
   return {
     showWelcomeScreen: false,
     theme: THEME.LIGHT,
+    webGLEnabled: true,
     collaborators: new Map(),
     currentChartType: "bar",
     currentItemBackgroundColor: DEFAULT_ELEMENT_PROPS.backgroundColor,
@@ -164,6 +165,7 @@ const APP_STATE_STORAGE_CONF = (<
   fileHandle: { browser: false, export: false, server: false },
   gridSize: { browser: true, export: true, server: true },
   height: { browser: false, export: false, server: false },
+  webGLEnabled: { browser: false, export: false, server: false },
   isBindingEnabled: { browser: false, export: false, server: false },
   defaultSidebarDockedPreference: {
     browser: true,

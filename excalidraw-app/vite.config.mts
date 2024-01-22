@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import svgrPlugin from "vite-plugin-svgr";
 import { ViteEjsPlugin } from "vite-plugin-ejs";
 import { VitePWA } from "vite-plugin-pwa";
+import glsl from "vite-plugin-glsl";
 import checker from "vite-plugin-checker";
 
 // To load .env.local variables
@@ -53,6 +54,7 @@ export default defineConfig({
       },
     }),
     svgrPlugin(),
+    glsl(),
     ViteEjsPlugin(),
     VitePWA({
       registerType: "autoUpdate",
@@ -191,4 +193,7 @@ export default defineConfig({
     }),
   ],
   publicDir: "../public",
+  define: {
+    global: {},
+  },
 });

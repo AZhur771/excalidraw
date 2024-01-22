@@ -8,12 +8,15 @@
   ],
   "dependencies": {
     "@excalidraw/random-username": "1.0.0",
+    "@pixi-essentials/svg": "2.0.1",
+    "@pixi/graphics-smooth": "1.1.0",
     "@sentry/browser": "6.2.5",
     "@sentry/integrations": "6.2.5",
     "firebase": "8.3.3",
     "i18next-browser-languagedetector": "6.1.4",
     "idb-keyval": "6.0.3",
     "jotai": "1.13.1",
+    "pixi.js": "7.3.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "socket.io-client": "4.7.2"
@@ -46,6 +49,7 @@
     "vite": "5.0.6",
     "vite-plugin-checker": "0.6.1",
     "vite-plugin-ejs": "1.7.0",
+    "vite-plugin-glsl": "1.2.1",
     "vite-plugin-pwa": "0.17.4",
     "vite-plugin-svgr": "2.4.0",
     "vitest": "1.0.1",

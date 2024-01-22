@@ -6,6 +6,7 @@ import { Point } from "../types";
 import { getUpdatedTimestamp } from "../utils";
 import { Mutable } from "../utility-types";
 import { ShapeCache } from "../scene/ShapeCache";
+import { clearElementCache } from "../renderer/webgl/renderWebGLElement";
 
 type ElementUpdate<TElement extends ExcalidrawElement> = Omit<
   Partial<TElement>,
@@ -125,6 +126,8 @@ export const newElementWith = <TElement extends ExcalidrawElement>(
   if (!didChange) {
     return element;
   }
+
+  clearElementCache(element);
 
   return {
     ...element,

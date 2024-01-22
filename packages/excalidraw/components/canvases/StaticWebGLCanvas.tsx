@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from "react";
-import { RoughCanvas } from "roughjs/bin/canvas";
-import { renderStaticScene } from "../../renderer/renderScene";
+import * as PIXI from "pixi.js";
+import { renderStaticWebGLScene } from "../../renderer/webgl";
 import { isRenderThrottlingEnabled, isShallowEqual } from "../../utils";
 import type { AppState, StaticCanvasAppState } from "../../types";
 import type { StaticCanvasRenderConfig } from "../../scene/types";
 import type { NonDeletedExcalidrawElement } from "../../element/types";
 
-type StaticCanvasProps = {
+type StaticWebGLCanvasProps = {
+  pixi: PIXI.Application;
   canvas: HTMLCanvasElement;
-  rc: RoughCanvas;
   elements: readonly NonDeletedExcalidrawElement[];
   visibleElements: readonly NonDeletedExcalidrawElement[];
   versionNonce: number | undefined;
@@ -18,7 +18,7 @@ type StaticCanvasProps = {
   renderConfig: StaticCanvasRenderConfig;
 };
 
-const StaticCanvas = (props: StaticCanvasProps) => {
+const StaticWebGLCanvas = (props: StaticWebGLCanvasProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const isComponentMounted = useRef(false);
 
@@ -34,7 +34,7 @@ const StaticCanvas = (props: StaticCanvasProps) => {
       isComponentMounted.current = true;
 
       wrapper.replaceChildren(canvas);
-      canvas.classList.add("excalidraw__canvas", "static");
+      canvas.classList.add("excalidraw__canvas", "static", "webgl");
     }
 
     const widthString = `${props.appState.width}px`;
@@ -57,10 +57,10 @@ const StaticCanvas = (props: StaticCanvasProps) => {
       canvas.height = scaledHeight;
     }
 
-    renderStaticScene(
+    renderStaticWebGLScene(
       {
         canvas,
-        rc: props.rc,
+        pixi: props.pixi,
         scale: props.scale,
         elements: props.elements,
         visibleElements: props.visibleElements,
@@ -100,8 +100,8 @@ const getRelevantAppStateProps = (
 });
 
 const areEqual = (
-  prevProps: StaticCanvasProps,
-  nextProps: StaticCanvasProps,
+  prevProps: StaticWebGLCanvasProps,
+  nextProps: StaticWebGLCanvasProps,
 ) => {
   if (
     prevProps.versionNonce !== nextProps.versionNonce ||
@@ -125,4 +125,4 @@ const areEqual = (
   );
 };
 
-export default React.memo(StaticCanvas, areEqual);
+export default React.memo(StaticWebGLCanvas, areEqual);

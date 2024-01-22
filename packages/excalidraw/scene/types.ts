@@ -1,4 +1,5 @@
 import type { RoughCanvas } from "roughjs/bin/canvas";
+import * as PIXI from "pixi.js";
 import { Drawable } from "roughjs/bin/core";
 import {
   ExcalidrawTextElement,
@@ -20,6 +21,7 @@ export type StaticCanvasRenderConfig = {
   /** when exporting the behavior is slightly different (e.g. we can't use
    CSS filters), and we disable render optimizations for best output */
   isExporting: boolean;
+  webGLEnabled: boolean;
 };
 
 export type SVGRenderConfig = {
@@ -30,6 +32,7 @@ export type SVGRenderConfig = {
   renderEmbeddables: boolean;
   frameRendering: AppState["frameRendering"];
   canvasBackgroundColor: AppState["viewBackgroundColor"];
+  webGLEnabled: AppState["webGLEnabled"];
 };
 
 export type InteractiveCanvasRenderConfig = {
@@ -55,6 +58,16 @@ export type RenderInteractiveSceneCallback = {
 export type StaticSceneRenderConfig = {
   canvas: HTMLCanvasElement;
   rc: RoughCanvas;
+  elements: readonly NonDeletedExcalidrawElement[];
+  visibleElements: readonly NonDeletedExcalidrawElement[];
+  scale: number;
+  appState: StaticCanvasAppState;
+  renderConfig: StaticCanvasRenderConfig;
+};
+
+export type StaticWebGLSceneRenderConfig = {
+  canvas: HTMLCanvasElement;
+  pixi: PIXI.Application;
   elements: readonly NonDeletedExcalidrawElement[];
   visibleElements: readonly NonDeletedExcalidrawElement[];
   scale: number;
@@ -120,3 +133,8 @@ export type ElementShapes = {
   frame: null;
   magicframe: null;
 };
+
+export enum GridLineColor {
+  Bold = "#cccccc",
+  Regular = "#e5e5e5",
+}

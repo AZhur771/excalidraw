@@ -28,6 +28,7 @@ import {
 
 import { roundRect } from "./roundRect";
 import {
+  GridLineColor,
   InteractiveCanvasRenderConfig,
   InteractiveSceneRenderConfig,
   SVGRenderConfig,
@@ -177,11 +178,6 @@ const strokeGrid = (
   height: number,
 ) => {
   const BOLD_LINE_FREQUENCY = 5;
-
-  enum GridLineColor {
-    Bold = "#cccccc",
-    Regular = "#e5e5e5",
-  }
 
   const offsetX =
     -Math.round(zoom.value / gridSize) * gridSize + (scrollX % gridSize);
@@ -389,7 +385,7 @@ const frameClip = (
   );
 };
 
-const getNormalizedCanvasDimensions = (
+export const getNormalizedCanvasDimensions = (
   canvas: HTMLCanvasElement,
   scale: number,
 ): [number, number] => {
@@ -397,7 +393,7 @@ const getNormalizedCanvasDimensions = (
   return [canvas.width / scale, canvas.height / scale];
 };
 
-const bootstrapCanvas = ({
+const bootstrapContext = ({
   canvas,
   scale,
   normalizedWidth,
@@ -462,7 +458,7 @@ const _renderInteractiveScene = ({
     scale,
   );
 
-  const context = bootstrapCanvas({
+  const context = bootstrapContext({
     canvas,
     scale,
     normalizedWidth,
@@ -921,7 +917,23 @@ const _renderStaticScene = ({
     scale,
   );
 
-  const context = bootstrapCanvas({
+  const groupsToBeAddedToFrame = new Set<string>();
+
+  visibleElements.forEach((element) => {
+    if (
+      element.groupIds.length > 0 &&
+      appState.frameToHighlight &&
+      appState.selectedElementIds[element.id] &&
+      (elementOverlapsWithFrame(element, appState.frameToHighlight) ||
+        element.groupIds.find((groupId) => groupsToBeAddedToFrame.has(groupId)))
+    ) {
+      element.groupIds.forEach((groupId) =>
+        groupsToBeAddedToFrame.add(groupId),
+      );
+    }
+  });
+
+  const context = bootstrapContext({
     canvas,
     scale,
     normalizedWidth,
@@ -946,22 +958,6 @@ const _renderStaticScene = ({
       normalizedHeight / appState.zoom.value,
     );
   }
-
-  const groupsToBeAddedToFrame = new Set<string>();
-
-  visibleElements.forEach((element) => {
-    if (
-      element.groupIds.length > 0 &&
-      appState.frameToHighlight &&
-      appState.selectedElementIds[element.id] &&
-      (elementOverlapsWithFrame(element, appState.frameToHighlight) ||
-        element.groupIds.find((groupId) => groupsToBeAddedToFrame.has(groupId)))
-    ) {
-      element.groupIds.forEach((groupId) =>
-        groupsToBeAddedToFrame.add(groupId),
-      );
-    }
-  });
 
   // Paint visible elements
   visibleElements

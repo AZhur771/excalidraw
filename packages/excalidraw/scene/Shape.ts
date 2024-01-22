@@ -278,7 +278,12 @@ export const _generateElementShape = (
   {
     isExporting,
     canvasBackgroundColor,
-  }: { isExporting: boolean; canvasBackgroundColor: string },
+    webGLEnabled,
+  }: {
+    isExporting: boolean;
+    canvasBackgroundColor: string;
+    webGLEnabled: boolean;
+  },
 ): Drawable | Drawable[] | null => {
   switch (element.type) {
     case "rectangle":
@@ -378,7 +383,6 @@ export const _generateElementShape = (
     case "arrow": {
       let shape: ElementShapes[typeof element.type];
       const options = generateRoughOptions(element);
-
       // points array can be empty in the beginning, so it is important to add
       // initial position to it
       const points = element.points.length ? element.points : [[0, 0]];
@@ -433,7 +437,7 @@ export const _generateElementShape = (
     }
     case "freedraw": {
       let shape: ElementShapes[typeof element.type];
-      generateFreeDrawShape(element);
+      generateFreeDrawShape(element, webGLEnabled);
 
       if (isPathALoop(element.points)) {
         // generate rough polygon to fill freedraw shape

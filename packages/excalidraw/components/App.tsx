@@ -1,4 +1,5 @@
 import React, { useContext } from "react";
+import * as PIXI from "pixi.js";
 import { flushSync } from "react-dom";
 
 import { RoughCanvas } from "roughjs/bin/canvas";
@@ -399,6 +400,7 @@ import { ElementCanvasButton } from "./MagicButton";
 import { MagicIcon, copyIcon, fullscreenIcon } from "./icons";
 import { EditorLocalStorage } from "../data/EditorLocalStorage";
 import FollowMode from "./FollowMode/FollowMode";
+import StaticWebGLCanvas from "./canvases/StaticWebGLCanvas";
 
 const AppContext = React.createContext<AppClassProperties>(null!);
 const AppPropsContext = React.createContext<AppProps>(null!);
@@ -498,7 +500,8 @@ const gesture: Gesture = {
 class App extends React.Component<AppProps, AppState> {
   canvas: AppClassProperties["canvas"];
   interactiveCanvas: AppClassProperties["interactiveCanvas"] = null;
-  rc: RoughCanvas;
+  rc?: RoughCanvas;
+  pixi?: PIXI.Application;
   unmounted: boolean = false;
   actionManager: ActionManager;
   device: Device = deviceContextInitialValue;
@@ -597,7 +600,39 @@ class App extends React.Component<AppProps, AppState> {
     this.scene = new Scene();
 
     this.canvas = document.createElement("canvas");
-    this.rc = rough.canvas(this.canvas);
+
+    if (this.state.webGLEnabled) {
+      this.pixi = new PIXI.Application({
+        view: this.canvas as PIXI.ICanvas,
+        autoDensity: true,
+        antialias: true,
+        autoStart: false,
+        backgroundColor: this.state.viewBackgroundColor,
+        resolution: window.devicePixelRatio,
+        eventMode: "none",
+        width: this.state.width,
+        height: this.state.height,
+        eventFeatures: {
+          click: false,
+          globalMove: false,
+          move: false,
+          wheel: false,
+        },
+      });
+      this.pixi.stage.interactiveChildren = false;
+
+      // Grid container
+      const gridContainer = new PIXI.Container();
+      this.pixi.stage.addChild(gridContainer as PIXI.DisplayObject);
+
+      // Elements container
+      const elementsContainer = new PIXI.Container();
+      elementsContainer.sortableChildren = true;
+      this.pixi.stage.addChild(elementsContainer as PIXI.DisplayObject);
+    } else {
+      this.rc = rough.canvas(this.canvas);
+    }
+
     this.renderer = new Renderer(this.scene);
     if (excalidrawAPI) {
       const api: ExcalidrawImperativeAPI = {
@@ -1029,8 +1064,6 @@ class App extends React.Component<AppProps, AppState> {
             src = getEmbedLink(toValidURL(el.link || ""));
           }
 
-          // console.log({ src });
-
           const isVisible = isElementInViewport(
             el,
             normalizedWidth,
@@ -1348,6 +1381,7 @@ class App extends React.Component<AppProps, AppState> {
     const versionNonce = this.scene.getVersionNonce();
     const { canvasElements, visibleElements } =
       this.renderer.getRenderableElements({
+        webGLEnabled: this.state.webGLEnabled,
         versionNonce,
         zoom: this.state.zoom,
         offsetLeft: this.state.offsetLeft,
@@ -1548,25 +1582,49 @@ class App extends React.Component<AppProps, AppState> {
                             }}
                           />
                         )}
-                        <StaticCanvas
-                          canvas={this.canvas}
-                          rc={this.rc}
-                          elements={canvasElements}
-                          visibleElements={visibleElements}
-                          versionNonce={versionNonce}
-                          selectionNonce={
-                            this.state.selectionElement?.versionNonce
-                          }
-                          scale={window.devicePixelRatio}
-                          appState={this.state}
-                          renderConfig={{
-                            imageCache: this.imageCache,
-                            isExporting: false,
-                            renderGrid: true,
-                            canvasBackgroundColor:
-                              this.state.viewBackgroundColor,
-                          }}
-                        />
+                        {this.state.webGLEnabled ? (
+                          <StaticWebGLCanvas
+                            canvas={this.canvas}
+                            pixi={this.pixi!}
+                            elements={canvasElements}
+                            visibleElements={visibleElements}
+                            versionNonce={versionNonce}
+                            selectionNonce={
+                              this.state.selectionElement?.versionNonce
+                            }
+                            scale={window.devicePixelRatio}
+                            appState={this.state}
+                            renderConfig={{
+                              imageCache: this.imageCache,
+                              isExporting: false,
+                              renderGrid: true,
+                              webGLEnabled: this.state.webGLEnabled,
+                              canvasBackgroundColor:
+                                this.state.viewBackgroundColor,
+                            }}
+                          />
+                        ) : (
+                          <StaticCanvas
+                            canvas={this.canvas}
+                            rc={this.rc!}
+                            elements={canvasElements}
+                            visibleElements={visibleElements}
+                            versionNonce={versionNonce}
+                            selectionNonce={
+                              this.state.selectionElement?.versionNonce
+                            }
+                            scale={window.devicePixelRatio}
+                            appState={this.state}
+                            renderConfig={{
+                              imageCache: this.imageCache,
+                              isExporting: false,
+                              renderGrid: true,
+                              webGLEnabled: this.state.webGLEnabled,
+                              canvasBackgroundColor:
+                                this.state.viewBackgroundColor,
+                            }}
+                          />
+                        )}
                         <InteractiveCanvas
                           containerRef={this.excalidrawContainerRef}
                           canvas={this.interactiveCanvas}
@@ -9273,6 +9331,10 @@ class App extends React.Component<AppProps, AppState> {
           cb();
         }
         return;
+      }
+
+      if (this.state.webGLEnabled) {
+        this.pixi?.renderer.resize(width, height);
       }
 
       this.setState(
