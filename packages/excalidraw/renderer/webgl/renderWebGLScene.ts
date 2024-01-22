@@ -208,18 +208,18 @@ const _renderStaticWebGLScene = ({
       }
     });
 
-  // let drawCount = 0;
+  let drawCount = 0;
 
-  // const renderer = pixi.renderer as any;
-  // const drawElements = renderer.gl.drawElements;
-  // renderer.gl.drawElements = (...args: any[]) => {
-  //   drawElements.call(renderer.gl, ...args);
-  //   drawCount++;
-  // };
+  const renderer = pixi.renderer as any;
+  const drawElements = renderer.gl.drawElements;
+  renderer.gl.drawElements = (...args: any[]) => {
+    drawElements.call(renderer.gl, ...args);
+    drawCount++;
+  };
 
   pixi.render();
 
-  // console.log("drawCalls count", drawCount);
+  console.log("drawCalls count", drawCount);
 };
 
 /** throttled to animation framerate */

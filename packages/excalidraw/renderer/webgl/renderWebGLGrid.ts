@@ -28,35 +28,33 @@ export const renderWebGLGrid = (
     gap: spaceWidth + (lineWidth + spaceWidth),
   });
 
+  const lineH = new SmoothGraphics();
   for (let x = offsetX; x < offsetX + width + gridSize * 2; x += gridSize) {
     const isBold =
       Math.round(x - scrollX) % (BOLD_LINE_FREQUENCY * gridSize) === 0;
-    const line = new SmoothGraphics();
-    line.position.set(x, offsetY - gridSize);
-    line
+    lineH
       .lineStyle({
         width: lineWidth,
         color: isBold ? GridLineColor.Bold : GridLineColor.Regular,
         shader: isBold ? undefined : shader,
       })
-      .moveTo(0, 0)
-      .lineTo(0, offsetY + height + gridSize * 2);
-    container.addChild(line as PIXI.DisplayObject);
+      .moveTo(x, offsetY - gridSize)
+      .lineTo(x, offsetY + height + gridSize * 2);
   }
+  container.addChild(lineH as PIXI.DisplayObject);
 
+  const lineV = new SmoothGraphics();
   for (let y = offsetY; y < offsetY + height + gridSize * 2; y += gridSize) {
     const isBold =
       Math.round(y - scrollY) % (BOLD_LINE_FREQUENCY * gridSize) === 0;
-    const line = new SmoothGraphics();
-    line.position.set(offsetX - gridSize, y);
-    line
+    lineV
       .lineStyle({
         width: lineWidth,
         color: isBold ? GridLineColor.Bold : GridLineColor.Regular,
         shader: isBold ? undefined : shader,
       })
-      .moveTo(0, 0)
-      .lineTo(offsetX + width + gridSize * 2, 0);
-    container.addChild(line as PIXI.DisplayObject);
+      .moveTo(offsetX - gridSize, y)
+      .lineTo(offsetX + width + gridSize * 2, y);
   }
+  container.addChild(lineV as PIXI.DisplayObject);
 };
