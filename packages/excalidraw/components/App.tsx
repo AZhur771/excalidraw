@@ -1,7 +1,6 @@
 import React, { useContext } from "react";
-import * as PIXI from "pixi.js";
 import { flushSync } from "react-dom";
-
+import * as PIXI from "pixi.js";
 import { RoughCanvas } from "roughjs/bin/canvas";
 import rough from "roughjs/bin/rough";
 import clsx from "clsx";

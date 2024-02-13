@@ -61,6 +61,14 @@ export class ElementBounds {
     }
   >();
 
+  private static boundsWithZeroRotationCache = new WeakMap<
+    ExcalidrawElement,
+    {
+      bounds: Bounds;
+      version: ExcalidrawElement["version"];
+    }
+  >();
+
   static getBounds(element: ExcalidrawElement) {
     const cachedBounds = ElementBounds.boundsCache.get(element);
 
@@ -91,7 +99,40 @@ export class ElementBounds {
     return bounds;
   }
 
-  private static calculateBounds(element: ExcalidrawElement): Bounds {
+  static getBoundsWithZeroRotation(element: ExcalidrawElement) {
+    const cachedBounds = ElementBounds.boundsWithZeroRotationCache.get(element);
+
+    if (
+      cachedBounds?.version &&
+      cachedBounds.version === element.version &&
+      // we don't invalidate cache when we update containers and not labels,
+      // which is causing problems down the line. Fix TBA.
+      !isBoundToContainer(element)
+    ) {
+      return cachedBounds.bounds;
+    }
+
+    const bounds = ElementBounds.calculateBounds(element, true);
+
+    // hack to ensure that downstream checks could retrieve element Scene
+    // so as to have correctly calculated bounds
+    // FIXME remove when we get rid of all the id:Scene / element:Scene mapping
+    const shouldCache = Scene.getScene(element);
+
+    if (shouldCache) {
+      ElementBounds.boundsWithZeroRotationCache.set(element, {
+        version: element.version,
+        bounds,
+      });
+    }
+
+    return bounds;
+  }
+
+  private static calculateBounds(
+    element: ExcalidrawElement,
+    ignoreRotation = false,
+  ): Bounds {
     let bounds: Bounds;
 
     const [x1, y1, x2, y2, cx, cy] = getElementAbsoluteCoords(element);
@@ -99,7 +140,13 @@ export class ElementBounds {
     if (isFreeDrawElement(element)) {
       const [minX, minY, maxX, maxY] = getBoundsFromPoints(
         element.points.map(([x, y]) =>
-          rotate(x, y, cx - element.x, cy - element.y, element.angle),
+          rotate(
+            x,
+            y,
+            cx - element.x,
+            cy - element.y,
+            ignoreRotation ? 0 : element.angle,
+          ),
         ),
       );
 
@@ -110,12 +157,45 @@ export class ElementBounds {
         maxY + element.y,
       ];
     } else if (isLinearElement(element)) {
-      bounds = getLinearElementRotatedBounds(element, cx, cy);
+      bounds = getLinearElementRotatedBounds(
+        ignoreRotation
+          ? {
+              ...element,
+              angle: 0,
+            }
+          : element,
+        cx,
+        cy,
+      );
     } else if (element.type === "diamond") {
-      const [x11, y11] = rotate(cx, y1, cx, cy, element.angle);
-      const [x12, y12] = rotate(cx, y2, cx, cy, element.angle);
-      const [x22, y22] = rotate(x1, cy, cx, cy, element.angle);
-      const [x21, y21] = rotate(x2, cy, cx, cy, element.angle);
+      const [x11, y11] = rotate(
+        cx,
+        y1,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
+      const [x12, y12] = rotate(
+        cx,
+        y2,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
+      const [x22, y22] = rotate(
+        x1,
+        cy,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
+      const [x21, y21] = rotate(
+        x2,
+        cy,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
       const minX = Math.min(x11, x12, x22, x21);
       const minY = Math.min(y11, y12, y22, y21);
       const maxX = Math.max(x11, x12, x22, x21);
@@ -124,16 +204,40 @@ export class ElementBounds {
     } else if (element.type === "ellipse") {
       const w = (x2 - x1) / 2;
       const h = (y2 - y1) / 2;
-      const cos = Math.cos(element.angle);
-      const sin = Math.sin(element.angle);
+      const cos = Math.cos(ignoreRotation ? 0 : element.angle);
+      const sin = Math.sin(ignoreRotation ? 0 : element.angle);
       const ww = Math.hypot(w * cos, h * sin);
       const hh = Math.hypot(h * cos, w * sin);
       bounds = [cx - ww, cy - hh, cx + ww, cy + hh];
     } else {
-      const [x11, y11] = rotate(x1, y1, cx, cy, element.angle);
-      const [x12, y12] = rotate(x1, y2, cx, cy, element.angle);
-      const [x22, y22] = rotate(x2, y2, cx, cy, element.angle);
-      const [x21, y21] = rotate(x2, y1, cx, cy, element.angle);
+      const [x11, y11] = rotate(
+        x1,
+        y1,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
+      const [x12, y12] = rotate(
+        x1,
+        y2,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
+      const [x22, y22] = rotate(
+        x2,
+        y2,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
+      const [x21, y21] = rotate(
+        x2,
+        y1,
+        cx,
+        cy,
+        ignoreRotation ? 0 : element.angle,
+      );
       const minX = Math.min(x11, x12, x22, x21);
       const minY = Math.min(y11, y12, y22, y21);
       const maxX = Math.max(x11, x12, x22, x21);
@@ -724,6 +828,12 @@ const getLinearElementRotatedBounds = (
     ];
   }
   return coords;
+};
+
+export const getElementBoundsWithZeroRotation = (
+  element: ExcalidrawElement,
+): Bounds => {
+  return ElementBounds.getBoundsWithZeroRotation(element);
 };
 
 export const getElementBounds = (element: ExcalidrawElement): Bounds => {

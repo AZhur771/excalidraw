@@ -511,3 +511,7 @@ export const rangeIntersection = (
 export const isValueInRange = (value: number, min: number, max: number) => {
   return value >= min && value <= max;
 };
+
+export const fastRound = (num: number) => {
+  return (num + 0.5) << 0;
+};

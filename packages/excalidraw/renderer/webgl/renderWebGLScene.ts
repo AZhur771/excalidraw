@@ -1,3 +1,4 @@
+import * as PIXI from "pixi.js";
 import {
   createPlaceholderEmbeddableLabel,
   isIframeLikeOrItsLabel,
@@ -6,20 +7,13 @@ import {
   isEmbeddableElement,
   isIframeLikeElement,
 } from "../../element/typeChecks";
-import {
-  ExcalidrawElement,
-  ExcalidrawFrameLikeElement,
-} from "../../element/types";
+import { ExcalidrawElement } from "../../element/types";
 import {
   elementOverlapsWithFrame,
   getTargetFrame,
   isElementInFrame,
 } from "../../frame";
-import {
-  StaticCanvasRenderConfig,
-  StaticWebGLSceneRenderConfig,
-} from "../../scene/types";
-import { StaticCanvasAppState } from "../../types";
+import { StaticWebGLSceneRenderConfig } from "../../scene/types";
 import { throttleRAF } from "../../utils";
 import { getNormalizedCanvasDimensions } from "../renderScene";
 import { prepareWebGLCanvas } from "./prepareWebGLCanvas";
@@ -27,19 +21,8 @@ import { displayObjectCache, renderWebGLElement } from "./renderWebGLElement";
 import { renderWebGLGrid } from "./renderWebGLGrid";
 import { renderLinkIcon } from "./renderWebGLLink";
 
-const clipWebGLFrame = (
-  element: ExcalidrawElement,
-  frame: ExcalidrawFrameLikeElement,
-  renderConfig: StaticCanvasRenderConfig,
-  appState: StaticCanvasAppState,
-) => {
-  // const objGraphics = displayObjectCache.get(element);
-  // const frameGraphics = displayObjectCache.get(frame);
-  // console.log(objGraphics, frameGraphics);
-  // if (objGraphics && frameGraphics) {
-  //   objGraphics.alpha = objGraphics.alpha * frameGraphics.alpha;
-  // }
-};
+const MIN_RESOLUTION = 0.1;
+const MAX_RESOLUTION = 2;
 
 const _renderStaticWebGLScene = ({
   canvas,
@@ -62,6 +45,10 @@ const _renderStaticWebGLScene = ({
   const { renderGrid = true, isExporting } = renderConfig;
 
   const groupsToBeAddedToFrame = new Set<string>();
+
+  const resolution = appState.shouldCacheIgnoreZoom
+    ? MIN_RESOLUTION
+    : Math.min(appState.zoom.value, MAX_RESOLUTION);
 
   visibleElements.forEach((element) => {
     if (
@@ -108,6 +95,21 @@ const _renderStaticWebGLScene = ({
     );
   }
 
+  const frameElementMapper = new Map<ExcalidrawElement, ExcalidrawElement[]>();
+
+  const addFrameElement = (
+    frame: ExcalidrawElement,
+    element: ExcalidrawElement,
+  ) => {
+    const frameElements = frameElementMapper.get(frame);
+
+    if (frameElements) {
+      frameElements.push(element);
+    } else {
+      frameElementMapper.set(frame, [element]);
+    }
+  };
+
   // Paint visible elements
   visibleElements
     .filter((el) => !isIframeLikeOrItsLabel(el))
@@ -122,24 +124,36 @@ const _renderStaticWebGLScene = ({
         ) {
           const frame = getTargetFrame(element, appState);
 
-          // TODO do we need to check isElementInFrame here?
           if (frame && isElementInFrame(element, elements, appState)) {
-            clipWebGLFrame(element, frame, renderConfig, appState);
+            addFrameElement(frame, element);
+            renderWebGLElement(
+              element,
+              pixi,
+              renderConfig,
+              appState,
+              resolution,
+              frameId,
+            );
+          } else {
+            renderWebGLElement(
+              element,
+              pixi,
+              renderConfig,
+              appState,
+              resolution,
+              null,
+              elementsContainer,
+            );
           }
-          renderWebGLElement(
-            element,
-            elementsContainer,
-            pixi,
-            renderConfig,
-            appState,
-          );
         } else {
           renderWebGLElement(
             element,
-            elementsContainer,
             pixi,
             renderConfig,
             appState,
+            resolution,
+            null,
+            elementsContainer,
           );
         }
         if (!isExporting) {
@@ -155,13 +169,21 @@ const _renderStaticWebGLScene = ({
     .filter((el) => isIframeLikeOrItsLabel(el))
     .forEach((element) => {
       try {
-        const render = () => {
+        const render = ({
+          container,
+          frameId,
+        }: {
+          container?: PIXI.Container;
+          frameId: string | null;
+        }) => {
           renderWebGLElement(
             element,
-            elementsContainer,
             pixi,
             renderConfig,
             appState,
+            resolution,
+            frameId,
+            container,
           );
 
           if (
@@ -174,10 +196,12 @@ const _renderStaticWebGLScene = ({
             const label = createPlaceholderEmbeddableLabel(element);
             renderWebGLElement(
               label,
-              elementsContainer,
               pixi,
               renderConfig,
               appState,
+              resolution,
+              null,
+              container,
             );
           }
           if (!isExporting) {
@@ -197,29 +221,48 @@ const _renderStaticWebGLScene = ({
           const frame = getTargetFrame(element, appState);
 
           if (frame && isElementInFrame(element, elements, appState)) {
-            clipWebGLFrame(element, frame, renderConfig, appState);
+            addFrameElement(frame, element);
+            render({
+              frameId,
+            });
+          } else {
+            render({
+              container: elementsContainer,
+              frameId: null,
+            });
           }
-          render();
         } else {
-          render();
+          render({
+            container: elementsContainer,
+            frameId: null,
+          });
         }
       } catch (error: any) {
         console.error(error);
       }
     });
 
-  let drawCount = 0;
+  frameElementMapper.forEach((elements, frame) => {
+    const frameContainer = displayObjectCache.get(frame) as PIXI.Container;
+    for (const element of elements) {
+      const obj = displayObjectCache.get(element)!;
+      obj.position.set(obj.x - frameContainer.x, obj.y - frameContainer.y);
+      frameContainer.addChild(obj);
+    }
+  });
 
-  const renderer = pixi.renderer as any;
-  const drawElements = renderer.gl.drawElements;
-  renderer.gl.drawElements = (...args: any[]) => {
-    drawElements.call(renderer.gl, ...args);
-    drawCount++;
-  };
+  // let drawCount = 0;
+
+  // const renderer = pixi.renderer as any;
+  // const drawElements = renderer.gl.drawElements;
+  // renderer.gl.drawElements = (...args: any[]) => {
+  //   drawElements.call(renderer.gl, ...args);
+  //   drawCount++;
+  // };
 
   pixi.render();
 
-  console.log("drawCalls count", drawCount);
+  // console.log("drawCalls count", drawCount);
 };
 
 /** throttled to animation framerate */
